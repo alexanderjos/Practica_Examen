@@ -45,85 +45,100 @@ public class SecondFragment extends Fragment {
         binding.txtBienvenida.setText("Hola " + nombre);
         int dificultadInt = "Facil".equalsIgnoreCase(dificultad) ? 0 : 1; // Ignora mayúsculas
         crearBotones(dificultadInt);
-        binding.btnVolver.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                SecondFragmentDirections.ActionSecondFragmentToFirstFragment action =
-                        SecondFragmentDirections.actionSecondFragmentToFirstFragment(nombre,totalClicks,dificultad);
-                NavHostFragment.findNavController(SecondFragment.this).navigate(action);
-            }
+        binding.btnVolver.setOnClickListener(view1 -> {
+            SecondFragmentDirections.ActionSecondFragmentToFirstFragment action =
+                    SecondFragmentDirections.actionSecondFragmentToFirstFragment(nombre, totalClicks, dificultad);
+            NavHostFragment.findNavController(SecondFragment.this).navigate(action);
         });
     }
 
     private void crearBotones(int dificultad) {
+        // Elimina todas las vistas anteriores del grid donde se colocarán los botones
         binding.gridMemorias.removeAllViews();
 
-        int columnas = (dificultad == 0) ? 3 : 4; // 3 columnas
-        int filas = (dificultad == 0) ? 4 : 5; // 4 filas
-        int maxValor = (dificultad == 0) ? 6 : 10; // 6 para fácil, 10 para difícil
+        // Define las dimensiones de la cuadrícula dependiendo de la dificultad
+        int columnas = (dificultad == 0) ? 3 : 4; // Si la dificultad es 0, se crean 3 columnas; si no, 4
+        int filas = (dificultad == 0) ? 4 : 5; // Si la dificultad es 0, se crean 4 filas; si no, 5
+        int maxValor = (dificultad == 0) ? 6 : 10; // Se usan 6 valores para fácil, 10 para difícil
 
+        // Genera un conjunto único de números para el juego
         Set<Integer> valores = new HashSet<>();
         while (valores.size() < (columnas * filas) / 2) {
+            // Añade números aleatorios al conjunto hasta que haya suficientes
             valores.add((int) (Math.random() * maxValor) + 1);
         }
+
+        // Crea una lista con los valores generados
         listaValores = new ArrayList<>(valores);
-        listaValores.addAll(listaValores); // Duplicamos los valores para el juego
-        Collections.shuffle(listaValores); // Mezclamos los valores
+        listaValores.addAll(listaValores); // Duplica los valores para hacer pares
+        Collections.shuffle(listaValores); // Mezcla los valores para que estén en posiciones aleatorias
 
-        botones = new ArrayList<>(); // Inicializa la lista de botones
+        // Inicializa la lista de botones
+        botones = new ArrayList<>();
 
+        // Genera los botones y los añade al grid
         for (int i = 0; i < filas; i++) {
             for (int j = 0; j < columnas; j++) {
+                // Crea un nuevo botón
                 Button button = new Button(requireContext());
-                button.setText(""); // Texto vacío inicialmente
+                button.setText(""); // Deja el texto vacío al principio
+
+                // Define el layout para los botones dentro del grid
                 GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-                params.rowSpec = GridLayout.spec(i); // Fila
-                params.columnSpec = GridLayout.spec(j); // Columna
+                params.rowSpec = GridLayout.spec(i, 1f); // Distribuye el alto en la fila
+                params.columnSpec = GridLayout.spec(j, 1f); // Distribuye el ancho en la columna
+                params.width = 0; // Ancho proporcional
+                params.height = 0; // Altura proporcional
+                params.setMargins(8, 8, 8, 8); // Márgenes alrededor del botón
                 button.setLayoutParams(params);
+                button.setTextSize(30); // Tamaño del texto
 
-                final int index = i * columnas + j; // Índice único para cada botón
+                // Índice único para identificar cada botón
+                final int index = i * columnas + j;
 
+                // Define el comportamiento del botón cuando se le hace clic
                 button.setOnClickListener(v -> manejarClick(index, button));
-                botones.add(button); // Agrega el botón a la lista
+
+                // Añade el botón a la lista y lo añade al grid
+                botones.add(button);
                 binding.gridMemorias.addView(button);
             }
         }
     }
 
     private void manejarClick(int index, Button button) {
-        // Verificar si el botón ya está desactivado
+        // Verifica si el botón ya está desactivado
         if (!button.isEnabled()) return;
 
-        // Incrementar el contador total de clics
+        // Incrementa el contador total de clics
         totalClicks++;
 
-        // Muestra el número en el botón
+        // Muestra el número correspondiente al índice en el botón
         button.setText(String.valueOf(listaValores.get(index)));
-        button.setEnabled(false); // Desactiva el botón
+        button.setEnabled(false); // Desactiva el botón después del clic
 
+        // Si es el primer clic
         if (primerosClick == -1) {
-            // Primer clic
             primerosClick = index;
         } else if (segundoClick == -1 && index != primerosClick) {
-            // Segundo clic
+            // Si es el segundo clic (y no es el mismo botón del primero)
             segundoClick = index;
-            verificarCoincidencia();
+            verificarCoincidencia(); // Comprueba si los dos clics forman una coincidencia
         }
     }
 
     private void verificarCoincidencia() {
-        // Si los números coinciden
+        // Si los valores de los dos clics coinciden
         if (listaValores.get(primerosClick).equals(listaValores.get(segundoClick))) {
-            numeroDeCoincidencias++;
+            numeroDeCoincidencias++; // Incrementa el número de coincidencias
             Toast.makeText(getActivity(), "¡Coincidencia!", Toast.LENGTH_SHORT).show();
         } else {
-            // Si no coinciden
+            // Si no coinciden, muestra un mensaje y oculta los botones después de un segundo
             Toast.makeText(getActivity(), "No coinciden. Intenta de nuevo.", Toast.LENGTH_SHORT).show();
-            // Temporizador para ocultar los números nuevamente
             new android.os.Handler().postDelayed(this::ocultarBotones, 1000);
         }
 
-        // Reinicia el registro de clics después de un segundo
+        // Después de un segundo, reinicia los valores de los clics
         new android.os.Handler().postDelayed(() -> {
             primerosClick = -1;
             segundoClick = -1;
@@ -132,16 +147,18 @@ public class SecondFragment extends Fragment {
     }
 
     private void ocultarBotones() {
-        // Voltear y reactivar botones si no coinciden
+        // Si el primer botón fue seleccionado
         if (primerosClick != -1) {
-            botones.get(primerosClick).setText(""); // Oculta el primer botón
-            botones.get(primerosClick).setEnabled(true); // Vuelve a activar el botón
+            botones.get(primerosClick).setText(""); // Oculta el valor del primer botón
+            botones.get(primerosClick).setEnabled(true); // Reactiva el botón
         }
+        // Si el segundo botón fue seleccionado
         if (segundoClick != -1) {
-            botones.get(segundoClick).setText(""); // Oculta el segundo botón
-            botones.get(segundoClick).setEnabled(true); // Vuelve a activar el botón
+            botones.get(segundoClick).setText(""); // Oculta el valor del segundo botón
+            botones.get(segundoClick).setEnabled(true); // Reactiva el botón
         }
     }
+
 
     @Override
     public void onDestroyView() {
